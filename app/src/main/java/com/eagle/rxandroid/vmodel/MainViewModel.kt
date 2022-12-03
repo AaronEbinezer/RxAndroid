@@ -17,7 +17,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 
 
-class MainViewModel(val repo: MainRepo) : ViewModel() {
+class MainViewModel(private val repo: MainRepo) : ViewModel() {
     private val compositeDisposable by lazy {
         CompositeDisposable()
     }
