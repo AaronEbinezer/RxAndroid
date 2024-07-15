@@ -1,10 +1,10 @@
 package com.eagle.rxandroid.sample
 
+import com.eagle.rxandroid.AccessSpecs
 import com.eagle.rxandroid.sample.TestableObject.getDataFromDb
 import io.mockk.*
 import junit.framework.Assert.assertEquals
 import org.junit.Test
-
 class TestableServiceTest {
 
     @Test

@@ -7,20 +7,21 @@ import com.eagle.rxandroid.vmodel.model.maps.Order
 import com.eagle.rxandroid.vmodel.model.maps.OrderLine
 import io.reactivex.Single
 
-class MainRepo() {
-    fun callRxApi(apiService: ApiService?): Single<List<CurrencyModel.Market>>? {
+class MainRepo(private val apiService: ApiService?) {
+    fun callRxApi(): Single<List<CurrencyModel.Market>>? {
         return apiService?.getCryptoCoinData("btc")?.flatMap { cryptoModel ->
             Single.just(cryptoModel.ticker?.markets)
         }
     }
 
-    fun callRxSimpleApi(apiService: ApiService?): Single<String>? {
+    fun callRxSimpleApi(): Single<String>? {
+        println("Api service $apiService")
         return apiService?.simpleApi()?.flatMap { simpleRes ->
             Single.just(simpleRes.data)
         }
     }
 
-    fun getOrderList(apiService: ApiService?): Single<List<OrderLine>>? {
+    fun getOrderList(): Single<List<OrderLine>>? {
         return apiService?.getOrder()?.map { item -> item.flatMap { order ->
             order.lines
         } }?.flatMap { orderLine ->

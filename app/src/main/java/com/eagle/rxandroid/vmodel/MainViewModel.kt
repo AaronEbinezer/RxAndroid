@@ -12,41 +12,53 @@ import com.eagle.rxandroid.vmodel.model.maps.Order
 import com.eagle.rxandroid.vmodel.model.maps.OrderLine
 import com.google.gson.Gson
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 
 
-class MainViewModel(private val repo: MainRepo) : ViewModel() {
+open class MainViewModel(private val repo: MainRepo) : ViewModel() {
     private val compositeDisposable by lazy {
         CompositeDisposable()
     }
 
     private var greetingLiveData = MutableLiveData<String>()
+    private var marketValueLiveData = MutableLiveData<String>()
+
+    private val getGreeting: String
+        get() {
+            return "Hello from RX Android"
+        }
+
     private fun getGreeting(): String {
         return "Hello from RX Android"
     }
 
     fun loadGreeting() {
-        val observable = Observable.just(getGreeting())
+        val observable = Observable.just(getGreeting)
             .subscribeOn(Schedulers.io())
-            .onErrorReturn { e -> "Error $e" }
-            .subscribe { greeting ->
+            .onErrorReturn { e -> "Error *** $e" }
+            .subscribe({ greeting ->
                 Log.d("TAG", "loadGreeting: $greeting")
                 greetingLiveData.postValue(greeting)
-            }
+            }, { throwable ->
+                println("*** Error $throwable")
+            })
         if (observable != null) {
             compositeDisposable.add(observable)
         }
     }
 
     fun getGreetings() = greetingLiveData
+    fun getMarketValue() = marketValueLiveData
 
     fun callSimpleApi() {
         val cryptocurrencyService: ApiService? =
             RetroClient.getApiService()
         val cryptoObservable = cryptocurrencyService?.let {
-            repo.callRxSimpleApi(it)
+            repo.callRxSimpleApi()
                 ?.subscribeOn(Schedulers.io())
                 ?.observeOn(AndroidSchedulers.mainThread())
                 ?.subscribe(this::handleRxResults, this::handleError)
@@ -57,18 +69,32 @@ class MainViewModel(private val repo: MainRepo) : ViewModel() {
         }
     }
 
+    fun callSimpleSingleApi() {
+        val cryptoObservable =
+            callSimpleRxApi()?.subscribe(this::handleRxResults, this::handleError)
+        if (cryptoObservable != null) {
+            compositeDisposable.add(cryptoObservable)
+        }
+    }
+
+    fun callSimpleRxApi(): Single<String>? {
+        return repo.callRxSimpleApi()
+            ?.subscribeOn(Schedulers.io())
+            ?.observeOn(AndroidSchedulers.mainThread())
+    }
+
     private fun handleRxResults(marketList: String?) {
         if (marketList?.isNotEmpty() == true) {
             println("Market List $marketList")
+            marketValueLiveData.postValue(marketList)
         } else {
             println("Failed to load the list")
+            marketValueLiveData.postValue(null)
         }
     }
 
     fun cryptoCoin() {
-        val cryptocurrencyService: ApiService? =
-            RetroClient.getApiService()
-        val cryptoObservable = repo.callRxApi(cryptocurrencyService)
+        val cryptoObservable = repo.callRxApi()
             ?.observeOn(AndroidSchedulers.mainThread())
             ?.subscribeOn(Schedulers.io())
             ?.subscribe(
@@ -88,9 +114,7 @@ class MainViewModel(private val repo: MainRepo) : ViewModel() {
     }
 
     fun getOrderList() {
-        val cryptocurrencyService: ApiService? =
-            RetroClient.getApiService()
-        val observable = repo.getOrderList(cryptocurrencyService)
+        val observable = repo.getOrderList()
             ?.subscribeOn(Schedulers.io())
             ?.observeOn(AndroidSchedulers.mainThread())
             ?.subscribe(
@@ -147,5 +171,26 @@ class MainViewModel(private val repo: MainRepo) : ViewModel() {
 
     private fun handleError(t: Throwable) {
         println("Error occurred ${t.cause}")
+    }
+
+    fun generateData(): CurrencyModel {
+        val marketList = arrayListOf<Market>()
+        for (i in 0..100000) {
+            val market = CurrencyModel().Market()
+            market.market = "$i"
+            market.price = "$i"
+            market.coinName = "$i"
+            market.volume = 1f * i
+            marketList.add(market)
+        }
+        val ticker = CurrencyModel().Ticker()
+        ticker.volume = "1"
+        ticker.base = "2"
+        ticker.change = "3"
+        ticker.price = "4"
+        ticker.markets = marketList
+        val currencyModel = CurrencyModel()
+        currencyModel.ticker = ticker
+        return currencyModel
     }
 }

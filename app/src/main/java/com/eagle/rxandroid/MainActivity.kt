@@ -2,10 +2,14 @@ package com.eagle.rxandroid
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.ViewModelProvider
+import com.eagle.rxandroid.api.RetroClient
 import com.eagle.rxandroid.databinding.ActivityMainBinding
 import com.eagle.rxandroid.repo.MainRepo
 import com.eagle.rxandroid.utils.AppUtils
+import com.eagle.rxandroid.utils.Rx
 import com.eagle.rxandroid.vmodel.MainFactoryViewModel
 import com.eagle.rxandroid.vmodel.MainViewModel
 import com.eagle.rxandroid.vmodel.model.maps.Order
@@ -13,7 +17,9 @@ import com.eagle.rxandroid.vmodel.model.maps.OrderLine
 import com.google.gson.Gson
 
 class MainActivity : AppCompatActivity() {
-    private var mainViewModel: MainViewModel? = null
+    private val mainViewModel by lazy {
+        ViewModelProvider(this, getFactoryViewModel())[MainViewModel::class.java]
+    }
     private var binding: ActivityMainBinding? = null
     private val order = Order(
         listOf(OrderLine("Tomato", 2), OrderLine("Garlic", 3), OrderLine("Chives", 2))
@@ -23,16 +29,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding?.root)
-        initializeObjects()
-        observeGreetings()
-        mainViewModel?.loadGreeting()
+//        observeGreetings()
+//        mainViewModel.loadGreeting()
+//        observeSimpleApi()
+//        callSimpleSingleApi()
 //        callRxSimpleApi()
 //        callCryptoApi()
-        mainViewModel?.loadList()
+//        mainViewModel?.loadList()
 //        mapFunc()
 //        mainViewModel?.getOrderList()
     }
-
     private fun mapFunc() {
 //       https://www.baeldung.com/kotlin/map-vs-flatmap
         val names = order.lines.map { it.name }
@@ -54,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         )
         println("Order list ${Gson().toJson(orders)}")
         val lines: List<OrderLine> = orders.flatMap { it.lines }
+        println("Line list ${Gson().toJson(lines)}")
         val names = lines.map { it.name }.distinct()
         orders[0].lines[0].name = ""
         println("Names list $names")
@@ -66,19 +73,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initializeObjects() {
-        val factory by lazy {
-            MainFactoryViewModel(MainRepo())
-        }
-        mainViewModel = ViewModelProvider(this, factory)[MainViewModel::class.java]
+    private fun getFactoryViewModel(): MainFactoryViewModel {
+        return MainFactoryViewModel(MainRepo(RetroClient.getApiService()))
     }
 
     private fun callRxSimpleApi() {
         mainViewModel?.callSimpleApi()
     }
 
+
+    private fun callSimpleSingleApi() {
+        mainViewModel?.callSimpleSingleApi()
+    }
+
     private fun callCryptoApi() {
         mainViewModel?.cryptoCoin()
+    }
+
+    private fun observeSimpleApi() {
+        mainViewModel?.getMarketValue()?.observe(this) {
+            if(it != null) {
+                println("value $it")
+            } else {
+                print("Error")
+            }
+        }
     }
 
 }
